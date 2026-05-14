@@ -116,7 +116,7 @@ project/
 
 ### 1️⃣ Clone Repository
 
-git clone https://github.com/your-username/ytmate-ai.git  
+git clone https://github.com/Shiv-Chavda/YtMate.git
 cd ytmate-ai  
 
 ---
