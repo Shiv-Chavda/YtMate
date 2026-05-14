@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-wheel-metadata/
+.idea/
+
+# Frontend (Vite + React)
+node_modules/
+dist/
+.env
+.env*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/public/vite.svg
+
+# ChromaDB
+backend/chroma_db/
+
+# OS
+.DS_Store
+Thumbs.db
