@@ -10,6 +10,7 @@ function ChatBot() {
   const [messages, setMessages] = useState([
     { role: 'ai', content: "Welcome to YtMate AI. I am ready to give answer with your video content. Please provide a Video ID to begin session." }
   ]);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://yt-mate-five.vercel.app";
 
   const YouTubeBrandIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -26,7 +27,7 @@ function ChatBot() {
 
     try {
       const res = await axios.post(
-        "http://127.0.0.1:8000/api/process-video",
+        `${apiBaseUrl}/api/process-video`,
         {
           video_id: videoId   // 👈 same as backend expects
         }
@@ -63,7 +64,7 @@ function ChatBot() {
       setLoading(true);
 
       const { data } = await axios.post(
-        "http://127.0.0.1:8000/api/chat",
+        `${apiBaseUrl}/api/chat`,
         {
           question: userMessage.content,
           video_id: videoId,
