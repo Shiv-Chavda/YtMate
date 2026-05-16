@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from starlette.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import video,chat
@@ -15,6 +16,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ensure preflight requests always succeed on serverless platforms.
+@app.options("/{path:path}")
+def preflight_handler(path: str):
+    return Response(status_code=200)
 
 # ✅ Include routes
 app.include_router(video.router, prefix="/api")
