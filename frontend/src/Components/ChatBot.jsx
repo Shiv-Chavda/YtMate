@@ -7,6 +7,7 @@ function ChatBot() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'ai', content: "Welcome to YtMate AI. I am ready to give answer with your video content. Please provide a Video ID to begin session." }
   ]);
@@ -19,6 +20,23 @@ function ChatBot() {
     </svg>
   );
 
+  const fetchTranscript = async (id) => {
+    const url = `https://youtubetranscript.com/?format=json&video_id=${encodeURIComponent(id)}`;
+    const { data } = await axios.get(url, { timeout: 15000 });
+
+    if (!Array.isArray(data)) {
+      throw new Error("Transcript not available for this video.");
+    }
+
+    const transcript = data.map((item) => item.text).join(" ").trim();
+
+    if (!transcript) {
+      throw new Error("Transcript is empty for this video.");
+    }
+
+    return transcript;
+  };
+
   const handleAnalyze = async () => {
     if (!videoId) {
       alert("Please enter video ID");
@@ -26,24 +44,32 @@ function ChatBot() {
     }
 
     try {
-      const res = await axios.post(
-        `${apiBaseUrl}/api/process-video`,
-        {
-          video_id: videoId   // 👈 same as backend expects
-        }
-      );
+      setIsProcessing(true);
+
+      const transcript = await fetchTranscript(videoId);
+
+      const res = await axios.post(`${apiBaseUrl}/api/process-transcript`, {
+        video_id: videoId,
+        transcript,
+      });
 
       console.log(res.data);
 
       if (res.data.status === "success") {
         alert("Video processed ✅");
-      } else {
-        alert(res.data.message);
+        return;
       }
 
+      alert(res.data.message || "Processing failed.");
     } catch (error) {
       console.error(error);
-      alert("Backend error ❌");
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Transcript fetch failed.";
+      alert(message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -147,8 +173,42 @@ function ChatBot() {
             />
             <button
               onClick={handleAnalyze}
-              className="w-full bg-violet-600 hover:bg-violet-500 text-white py-3 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all shadow-lg shadow-violet-900/20 active:scale-95">
-              Analyze Video
+              disabled={isProcessing}
+              className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all shadow-lg shadow-violet-900/20 active:scale-95 ${
+                isProcessing
+                  ? "bg-zinc-400 text-black cursor-not-allowed"
+                  : "bg-violet-600 hover:bg-violet-500 text-white"
+              }`}>
+              {isProcessing ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      opacity="0.25"
+                    />
+                    <path
+                      d="M22 12a10 10 0 0 1-10 10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Analyzing...
+                </span>
+              ) : (
+                "Analyze Video"
+              )}
             </button>
           </div>
 

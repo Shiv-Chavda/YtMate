@@ -15,7 +15,6 @@ load_dotenv()
 def process_video(video_id: str):
     try:
         # 1️⃣ Fetch transcript
-        # 1️⃣ Fetch transcript
         api = YouTubeTranscriptApi()
 
         transcript_list = api.fetch(
@@ -24,20 +23,35 @@ def process_video(video_id: str):
         )
 
         transcript = " ".join([t.text for t in transcript_list])
-        # 2️⃣ Split into chunks
+        return process_transcript(video_id, transcript)
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+def process_transcript(video_id: str, transcript: str):
+    try:
+        if not transcript or not transcript.strip():
+            return {
+                "status": "error",
+                "message": "Transcript is empty."
+            }
+
+        # 1️⃣ Split into chunks
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=1200,
             chunk_overlap=150
         )
         documents = splitter.create_documents([transcript])
 
-        # 3️⃣ Create embeddings (Gemini)
-
+        # 2️⃣ Create embeddings
         embeddings = HuggingFaceEmbeddings(
             model_name = "sentence-transformers/all-MiniLM-L6-v2"
         )
 
-        # 4️⃣ Store in Chroma
+        # 3️⃣ Store in Chroma
         db = Chroma.from_documents(
             documents=documents,
             embedding=embeddings,
