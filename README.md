@@ -200,9 +200,8 @@ Body:
 
 ## 👨‍💻 Author
 
-Ankush Kumar  
-Aspiring Software Engineer  
-Passionate about AI + Full Stack Development  
+Shiv Chavda    
+Full Stack Developer  
 
 ---
 
