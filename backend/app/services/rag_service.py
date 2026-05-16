@@ -23,23 +23,7 @@ def process_video(video_id: str):
         )
 
         transcript = " ".join([t.text for t in transcript_list])
-        return process_transcript(video_id, transcript)
-
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
-
-def process_transcript(video_id: str, transcript: str):
-    try:
-        if not transcript or not transcript.strip():
-            return {
-                "status": "error",
-                "message": "Transcript is empty."
-            }
-
-        # 1️⃣ Split into chunks
+        
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=1200,
             chunk_overlap=150

@@ -20,22 +20,22 @@ function ChatBot() {
     </svg>
   );
 
-  const fetchTranscript = async (id) => {
-    const url = `https://youtubetranscript.com/?format=json&video_id=${encodeURIComponent(id)}`;
-    const { data } = await axios.get(url, { timeout: 15000 });
+  // const fetchTranscript = async (id) => {
+  //   const url = `https://youtubetranscript.com/?format=json&video_id=${encodeURIComponent(id)}`;
+  //   const { data } = await axios.get(url, { timeout: 15000 });
 
-    if (!Array.isArray(data)) {
-      throw new Error("Transcript not available for this video.");
-    }
+  //   if (!Array.isArray(data)) {
+  //     throw new Error("Transcript not available for this video.");
+  //   }
 
-    const transcript = data.map((item) => item.text).join(" ").trim();
+  //   const transcript = data.map((item) => item.text).join(" ").trim();
 
-    if (!transcript) {
-      throw new Error("Transcript is empty for this video.");
-    }
+  //   if (!transcript) {
+  //     throw new Error("Transcript is empty for this video.");
+  //   }
 
-    return transcript;
-  };
+  //   return transcript;
+  // };
 
   const handleAnalyze = async () => {
     if (!videoId) {
@@ -46,28 +46,35 @@ function ChatBot() {
     try {
       setIsProcessing(true);
 
-      const transcript = await fetchTranscript(videoId);
+      // const transcript = await fetchTranscript(videoId);
 
-      const res = await axios.post(`${apiBaseUrl}/api/process-transcript`, {
-        video_id: videoId,
-        transcript,
-      });
+      // const res = await axios.post(`${apiBaseUrl}/api/process-transcript`, {
+      //   video_id: videoId,
+      //   transcript,
+      // });
+      const res = await axios.post(
+        `${apiBaseUrl}/api/process-video`,
+        {
+          video_id: videoId   // 👈 same as backend expects
+        }
+      );
 
       console.log(res.data);
 
       if (res.data.status === "success") {
         alert("Video processed ✅");
-        return;
+      } else {
+        alert(res.data.message);
       }
 
-      alert(res.data.message || "Processing failed.");
+      // alert(res.data.message || "Processing failed.");
     } catch (error) {
       console.error(error);
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Transcript fetch failed.";
-      alert(message);
+      // const message =
+      //   error?.response?.data?.message ||
+      //   error?.message ||
+      //   "Transcript fetch failed.";
+      // alert(message);
     } finally {
       setIsProcessing(false);
     }
