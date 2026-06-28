@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from app.models.schema import VideoRequest
+from app.services.rag_service import process_video
+
 router = APIRouter()
 
 @router.post("/process-video")

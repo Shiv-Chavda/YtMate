@@ -11,7 +11,7 @@ function ChatBot() {
   const [messages, setMessages] = useState([
     { role: 'ai', content: "Welcome to YtMate AI. I am ready to give answer with your video content. Please provide a Video ID to begin session." }
   ]);
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://yt-mate-five.vercel.app";
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   const YouTubeBrandIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -82,6 +82,10 @@ function ChatBot() {
 
   const handleQuestion = async () => {
     if (!question.trim()) return;
+    if (!videoId.trim()) {
+      alert("Please enter and analyze a video first");
+      return;
+    }
 
     const userMessage = {
       role: "user",
@@ -104,21 +108,33 @@ function ChatBot() {
         }
       );
 
+      const answerText =
+        data?.status === "success"
+          ? data?.answer
+          : data?.message || "No response came back from the server.";
+
       const aiMessage = {
         role: "ai",
-        content: data.answer, // change if backend key different
+        content: typeof answerText === "string" && answerText.trim()
+          ? answerText
+          : "The server replied, but no answer text was returned.",
       };
 
       setMessages((prev) => [...prev, aiMessage]);
 
     } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Server error";
+
       console.error(error);
 
       setMessages((prev) => [
         ...prev,
         {
           role: "ai",
-          content: "Server error 😢",
+          content: errorMessage,
         },
       ]);
     } finally {
