@@ -12,6 +12,59 @@ function ChatBot() {
     { role: 'ai', content: "Welcome to YtMate AI. I am ready to give answer with your video content. Please provide a Video ID to begin session." }
   ]);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  const transcriptFallbackUrl = "https://youtubetranscript.com/?format=json&video_id=";
+
+  const normalizeVideoInput = (value) => {
+    const rawValue = value.trim();
+    if (!rawValue) {
+      throw new Error("Please enter a YouTube video URL or video ID.");
+    }
+
+    const idPattern = /^[A-Za-z0-9_-]{11}$/;
+    if (idPattern.test(rawValue)) {
+      return rawValue;
+    }
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(rawValue.includes("://") ? rawValue : `https://${rawValue}`);
+    } catch {
+      throw new Error("Please paste a valid YouTube URL or 11-character video ID.");
+    }
+
+    const hostname = parsedUrl.hostname.replace(/^www\./, "");
+
+    if (hostname === "youtu.be") {
+      const candidate = parsedUrl.pathname.split("/").filter(Boolean)[0] || "";
+      if (idPattern.test(candidate)) {
+        return candidate;
+      }
+    }
+
+    if (["youtube.com", "m.youtube.com", "music.youtube.com"].includes(hostname)) {
+      const queryId = parsedUrl.searchParams.get("v") || "";
+      if (idPattern.test(queryId)) {
+        return queryId;
+      }
+
+      const parts = parsedUrl.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2 && ["embed", "shorts", "live"].includes(parts[0]) && idPattern.test(parts[1])) {
+        return parts[1];
+      }
+    }
+
+    throw new Error("Please paste a valid YouTube URL or 11-character video ID.");
+  };
+
+  const shouldTryTranscriptFallback = (message) => {
+    const normalized = (message || "").toLowerCase();
+    return (
+      normalized.includes("blocked") ||
+      normalized.includes("cloud provider") ||
+      normalized.includes("could not retrieve a transcript") ||
+      normalized.includes("transcript retrieval is being blocked")
+    );
+  };
 
   const YouTubeBrandIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,44 +73,51 @@ function ChatBot() {
     </svg>
   );
 
-  // const fetchTranscript = async (id) => {
-  //   const url = `https://youtubetranscript.com/?format=json&video_id=${encodeURIComponent(id)}`;
-  //   const { data } = await axios.get(url, { timeout: 15000 });
+  const fetchTranscript = async (id) => {
+    const url = `${transcriptFallbackUrl}${encodeURIComponent(id)}`;
+    const { data } = await axios.get(url, { timeout: 15000 });
 
-  //   if (!Array.isArray(data)) {
-  //     throw new Error("Transcript not available for this video.");
-  //   }
+    if (!Array.isArray(data)) {
+      throw new Error("Transcript fallback could not find captions for this video.");
+    }
 
-  //   const transcript = data.map((item) => item.text).join(" ").trim();
+    const transcript = data
+      .map((item) => item?.text || "")
+      .join(" ")
+      .trim();
 
-  //   if (!transcript) {
-  //     throw new Error("Transcript is empty for this video.");
-  //   }
+    if (!transcript) {
+      throw new Error("Transcript fallback returned an empty transcript.");
+    }
 
-  //   return transcript;
-  // };
+    return transcript;
+  };
 
   const handleAnalyze = async () => {
-    if (!videoId) {
-      alert("Please enter video ID");
+    if (!videoId.trim()) {
+      alert("Please enter a YouTube URL or video ID");
       return;
     }
 
     try {
       setIsProcessing(true);
+      const normalizedVideoId = normalizeVideoInput(videoId);
+      setVideoId(normalizedVideoId);
 
-      // const transcript = await fetchTranscript(videoId);
-
-      // const res = await axios.post(`${apiBaseUrl}/api/process-transcript`, {
-      //   video_id: videoId,
-      //   transcript,
-      // });
-      const res = await axios.post(
+      let res = await axios.post(
         `${apiBaseUrl}/api/process-video`,
         {
-          video_id: videoId   // 👈 same as backend expects
+          video_id: normalizedVideoId
         }
       );
+
+      if (res.data.status !== "success" && shouldTryTranscriptFallback(res.data.message)) {
+        const transcript = await fetchTranscript(normalizedVideoId);
+        res = await axios.post(`${apiBaseUrl}/api/process-transcript`, {
+          video_id: normalizedVideoId,
+          transcript,
+        });
+      }
 
       console.log(res.data);
 
@@ -66,15 +126,14 @@ function ChatBot() {
       } else {
         alert(res.data.message);
       }
-
-      // alert(res.data.message || "Processing failed.");
     } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Transcript fetch failed.";
+
       console.error(error);
-      // const message =
-      //   error?.response?.data?.message ||
-      //   error?.message ||
-      //   "Transcript fetch failed.";
-      // alert(message);
+      alert(message);
     } finally {
       setIsProcessing(false);
     }
@@ -191,7 +250,7 @@ function ChatBot() {
             <input
               value={videoId}
               onChange={(e) => setVideoId(e.target.value)}
-              placeholder="Enter YouTube Video ID ..."
+              placeholder="Enter YouTube video URL or ID ..."
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-violet-500/50 transition-all placeholder:text-zinc-700 mb-3"
             />
             <button
