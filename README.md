@@ -182,9 +182,16 @@ Body:
 
 ## ⚠️ Limitations
 
+- NOTE: The live website may not work reliably for transcript analysis because YouTube can block transcript/comment requests coming from deployed cloud servers due to authentication, rate limits, or anti-bot protections.
+- NOTE: Some videos do not provide public transcripts, captions, or accessible comments, so analysis may fail even if the video itself is playable on YouTube.
 - Transcript must be available  
 - ChromaDB is local (not persistent in cloud)  
 - Accuracy depends on embedding model  
+
+---
+
+## Recomendation
+- Run this project locally that will be best for its use.
 
 ---
 
